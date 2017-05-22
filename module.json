@@ -1,0 +1,43 @@
+{
+    "autoload": true,
+    "singleton": false,
+    "dependencies": [],
+    "category": "developers_stuff",
+    "author": "Robert Gebauer",
+    "moduleName": "PresenceFromFile",
+    "version": "0.0.1",
+    "maturity": "beta",
+    "defaults": {
+        "title": "Presence from File",
+        "description": "",
+        "path": "",
+        "mappings": []
+    },
+    "options": {
+        "fields": {
+            "path": {
+                "label": "File to read presence keys from. Keys must be new-line separated. If a key is found in file, the mapped user will be set as 'present'."
+            },
+            "mappings": {
+                "label": "Mapping of keys in file to persons."
+            }
+        }
+    },
+    "schema": {
+        "properties": {
+            "path": {
+                "type": "string",
+                "required": true
+            },
+            "mappings": {
+                "type": "array",
+                "items": {
+                    "field": "string",
+                    "required": true
+                }
+            }
+        },
+        "required": true,
+        "type": "object"
+    }
+}
