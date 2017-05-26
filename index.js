@@ -28,7 +28,7 @@ PresenceFromFile.prototype.init = function (config) {
 
             if (!!!self.devicesByPresenceKey[presenceKey]) {
                 var vDev = this.controller.devices.create({
-                    deviceId: "PresenceDevice_" + self.id + "_" + presenceKey,
+                    deviceId: "PresenceDevice_" + self.id + "_" + presenceKey.replace(/:/g, "_"),
                     overlay: {
                         deviceType: "sensorBinary",
                     },
@@ -92,4 +92,7 @@ PresenceFromFile.prototype.stop = function () {
     for (var id in this.devicesByPresenceKey) {
         this.controller.devices.remove(this.mappings[id].get("id"));
     }
+    
+    this.devicesByPresenceKey = {};
+    this.devices = [];
 };
