@@ -95,4 +95,7 @@ PresenceFromFile.prototype.stop = function () {
     
     this.devicesByPresenceKey = {};
     this.devices = [];
+    
+    this.controller.off("presenceFromFile.poll", this.setupPollsForOneMinute);
+    this.controller.emit("cron.removeTask", "presenceFromFile.poll");
 };
