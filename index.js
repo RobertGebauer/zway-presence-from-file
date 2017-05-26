@@ -71,8 +71,12 @@ PresenceFromFile.prototype.init = function (config) {
                     break;
                 }
             }
-
-            device.set("metrics:level", levelSetToOn ? "on" : "off");
+            
+            var metricsLevelToSet = levelSetToOn ? "on" : "off";
+        
+            if (device.get("metrics:level") !== metricsLevelToSet) {
+                device.set("metrics:level", metricsLevelToSet);
+            }
         });
     };
 
