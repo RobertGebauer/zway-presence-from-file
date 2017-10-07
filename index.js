@@ -94,7 +94,7 @@ PresenceFromFile.prototype.stop = function () {
     PresenceFromFile.super_.prototype.stop.call(this);
 
     for (var id in this.devicesByPresenceKey) {
-        this.controller.devices.remove(this.mappings[id].get("id"));
+        this.controller.devices.remove(this.devicesByPresenceKey[id].get("id"));
     }
     
     this.devicesByPresenceKey = {};
