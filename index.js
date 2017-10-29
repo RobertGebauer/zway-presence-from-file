@@ -4,6 +4,8 @@ function PresenceFromFile(id, controller) {
     this.path = "";
     this.devicesByPresenceKey = {};
     this.devices = [];
+    this.presenceCountDevice = null;
+    this.absentTimeoutsForToken = {};
 
     this.subPollsInSeconds = [0, 10000, 20000, 30000, 40000, 50000];
 }
@@ -14,39 +16,44 @@ _module = PresenceFromFile;
 PresenceFromFile.prototype.init = function (config) {
     PresenceFromFile.super_.prototype.init.call(this, config);
 
-    var self = this;
+    var path = config.path;
+    var absentTimeoutMillis = config.absentTimeout * 1000;
 
-    this.path = config.path;
 
-    config.mappings.forEach(function (mapping) {
-        var userByKey = mapping.split("=");
-
-        if (userByKey.length === 2) {
-            // valid input
-            var presenceKey = userByKey[0].trim();
-            var person = userByKey[1].trim();
-
-            if (!!!self.devicesByPresenceKey[presenceKey]) {
-                var vDev = this.controller.devices.create({
-                    deviceId: "PresenceDevice_" + self.id + "_" + presenceKey.replace(/:/g, "_"),
-                    overlay: {
-                        deviceType: "sensorBinary",
-                    },
-                    defaults: {
-                        metrics: {
-                            title: "Presence of " + person,
-                            level: "off",
-                            presenceKey: presenceKey
-                        }
+    config.tokens.forEach(_.bind(function (token) {
+        if (!!!this.devicesByPresenceKey[token]) {
+            var vDev = this.controller.devices.create({
+                deviceId: "PresenceDevice_" + this.id + "_" + token.replace(/:/g, "_"),
+                overlay: {
+                    deviceType: "sensorBinary",
+                },
+                defaults: {
+                    metrics: {
+                        title: token,
+                        level: "off",
+                        token: token
                     }
-                });
+                },
+                moduleId: this.id
+            });
 
-                self.devicesByPresenceKey[presenceKey] = vDev;
-                self.devices.push(vDev);
-            }
-        } else {
-            debugPrint("Invalid mapping " + mapping);
+            this.devicesByPresenceKey[token] = vDev;
+            this.devices.push(vDev);
         }
+    }, this));
+
+    this.presenceCountDevice = this.controller.devices.create({
+        deviceId: "PresenceDevice_" + this.id + "_Count",
+        overlay: {
+            deviceType: "sensorMultilevel",
+        },
+        defaults: {
+            metrics: {
+                title: "Presence Count",
+                level: 0
+            }
+        },
+        moduleId: this.id
     });
 
     this.controller.emit("cron.addTask", "presenceFromFile.poll", {
@@ -57,11 +64,11 @@ PresenceFromFile.prototype.init = function (config) {
         month: null
     });
 
-    this.onPoll = function () {
-        var presentPrecenceKeys = fs.load(self.path).split("\n");
+    this.onPoll = _.bind(function () {
+        var presentPrecenceKeys = fs.load(path).split("\n");
 
-        self.devices.forEach(function (device) {
-            var presenceKey = device.get("metrics:presenceKey");
+        this.devices.forEach(_.bind(function (device) {
+            var presenceKey = device.get("metrics:token");
 
             var levelSetToOn = false;
             for (var i in presentPrecenceKeys) {
@@ -71,35 +78,85 @@ PresenceFromFile.prototype.init = function (config) {
                     break;
                 }
             }
-            
+
             var metricsLevelToSet = levelSetToOn ? "on" : "off";
-        
-            if (device.get("metrics:level") !== metricsLevelToSet) {
-                device.set("metrics:level", metricsLevelToSet);
+
+            if (metricsLevelToSet === "on") {
+                // kill existent absent timeout in any case
+                if (this.absentTimeoutsForToken[presenceKey] !== undefined) {
+                    window.clearTimeout(this.absentTimeoutsForToken[presenceKey]);
+                    this.absentTimeoutsForToken[presenceKey] = undefined;
+                }
             }
-        });
-    };
 
-    this.setupPollsForOneMinute = function () {
-        self.subPollsInSeconds.forEach(function (pollIn) {
-            window.setTimeout(self.onPoll, pollIn);
-        });
-    };
+            if (device.get("metrics:level") !== metricsLevelToSet) {
+                if (metricsLevelToSet === "off") {
+                    // set "off" in a couple of seconds and save timeout handle if not defined yet
 
-    this.setupPollsForOneMinute();
+                    if (this.absentTimeoutsForToken[presenceKey] === undefined) {
+                        // no timeout running so far..., create a new one
+                        this.absentTimeoutsForToken[presenceKey] = window.setTimeout(_.bind(function () {
+                            // update device status
+                            this.setIsPresent(device, levelSetToOn);
+
+                            // update presence count status
+                            this.setPresenceCount();
+
+                        }, this), absentTimeoutMillis);
+                    }
+                } else {
+                    this.setIsPresent(device, levelSetToOn);
+                }
+            }
+        }, this));
+
+        this.setPresenceCount();
+    }, this);
+
+    this.setupPollsForOneMinute = _.bind(function () {
+
+        this.subPollsInSeconds.forEach(_.bind(function (pollIn) {
+            window.setTimeout(this.onPoll, pollIn);
+        }, this));
+
+    }, this);
+
     this.controller.on("presenceFromFile.poll", this.setupPollsForOneMinute);
+};
+
+PresenceFromFile.prototype.setIsPresent = function(device, isPresent) {
+    device.set("metrics:level", isPresent ? "on" : "off");
+    device.set("metrics:icon", "/ZAutomation/api/v1/load/modulemedia/PresenceFromFile/" + isPresent ? "on.png" : "off.png");
+};
+
+PresenceFromFile.prototype.setPresenceCount = function () {
+    var presenceCount = 0;
+    this.devices.forEach(function (dev) {
+        presenceCount += (dev.get("metrics:level") === "on") ? 1 : 0;
+    });
+
+    if (this.presenceCountDevice.get("metrics:level") !== presenceCount) {
+        this.presenceCountDevice.set("metrics:level", presenceCount);
+    }
 };
 
 PresenceFromFile.prototype.stop = function () {
     PresenceFromFile.super_.prototype.stop.call(this);
 
-    for (var id in this.devicesByPresenceKey) {
-        this.controller.devices.remove(this.devicesByPresenceKey[id].get("id"));
-    }
-    
-    this.devicesByPresenceKey = {};
-    this.devices = [];
-    
+    // unsubscribe events and stop poll
     this.controller.off("presenceFromFile.poll", this.setupPollsForOneMinute);
     this.controller.emit("cron.removeTask", "presenceFromFile.poll");
+
+    // remove created devices
+    this.devices.forEach(_.bind(function (vDev) {
+        this.controller.devices.remove(vDev.get("id"));
+    }, this))
+    this.controller.devices.remove(this.presenceCountDevice.get("id"));
+
+    // unsubscribe running timeouts
+    for (key in this.absentTimeoutsForToken) {
+        if (this.absentTimeoutsForToken[key] !== undefined) {
+            window.clearTimeout(this.absentTimeoutsForToken[key]);
+        }
+    }
 };

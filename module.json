@@ -1,25 +1,38 @@
 {
     "autoload": true,
-    "singleton": false,
+    "singleton": true,
     "dependencies": [],
-    "category": "developers_stuff",
+    "category": "environment",
     "author": "Robert Gebauer",
     "moduleName": "PresenceFromFile",
-    "version": "0.0.1",
+    "version": "0.1",
+    "icon" : "icon.png",
+    "homepage" : "https://github.com/RobertGebauer/zway-presence-from-file",
+    "repository" : {
+        "source" : "https://github.com/RobertGebauer/zway-presence-from-file",
+        "type" : "git"
+     },
     "maturity": "beta",
     "defaults": {
-        "title": "Presence from File",
-        "description": "",
+        "title": "__m_title__",
+        "description": "__m_descr__",
         "path": "",
-        "mappings": []
+        "tokens": [],
+        "absentTimeout": 0
     },
     "options": {
         "fields": {
             "path": {
-                "label": "File to read presence keys from. Keys must be new-line separated. If a key is found in file, the mapped user will be set as 'present'."
+                "label": "__options_path_label__",
+                "helper" : "__options_path_helper__"
             },
-            "mappings": {
-                "label": "Mapping of keys in file to persons."
+            "tokens": {
+                "label": "__options_tokens_label__",
+                "helper" : "__options_tokens_helper__"
+            },
+            "absentTimeout": {
+                "label": "__options_absentTimeout_label__",
+                "helper" : "__options_absentTimeout_helper__"
             }
         }
     },
@@ -29,12 +42,16 @@
                 "type": "string",
                 "required": true
             },
-            "mappings": {
+            "tokens": {
                 "type": "array",
                 "items": {
                     "field": "string",
                     "required": true
                 }
+            },
+            "absentTimeout": {
+                "type": "number",
+                "required": true
             }
         },
         "required": true,

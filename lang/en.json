@@ -1,0 +1,14 @@
+{
+    "m_descr": "Creates a presence device (binary sensor) for each configured token and sets this device to 'on' (person is present) if the token is found in file; otherwise the device is set to 'off' (person not present). Furthermore, a presence count devices is created to count the number of present people. This app can used if you are able to detect person presence and write a token into a file if the person is present, e.g. by using Bluetooth beacons.<br><br>Please see README.md or check <a href='https://github.com/RobertGebauer/zway-presence-from-file'>https://github.com/RobertGebauer/zway-presence-from-file</a> for further description and an example how to build such a setting.",
+    "m_title": "Presence from File",
+
+    "options_path_label": "Path to file to read tokens from.",
+    "options_path_helper": "Path starts at Z-Way 'automation' directory. The file mentioned here should contain tokens, new-line separated. If a token is found in file, the corresponding device will be set to 'on'; otherwise 'off'.",
+
+    "options_tokens_label": "Tokens in files that represent presence if found.",
+    "options_tokens_helper": "List of tokens. For each of these tokens, a device will be created which value will be set to 'on' or 'off' depending whether the token is found in the file mentioned above or not.",
+
+    "options_absentTimeout_label": "Time (seconds) a token has to be absent before setting the device to 'off'.",
+    "options_absentTimeout_helper": "If you detect presence with a method that is not too stable (e.g. Bluetooth beacon which is out of range from time to time) you'll get a flickering presence device. To avoid this, you can set this tiemout. A token must be missing in the file for this option's value in seconds before the corresponding device is set to 'off' ('not present')."
+
+}
